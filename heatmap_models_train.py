@@ -8,21 +8,23 @@ from model.resnet import resnet50, resnet10, resnet18
 from model.stackedhour import hg2
 import numpy as np
 from dataloader.heatmap import hum36m_dataloader
+# from dataloader.loader_hog import hum36m_dataloader
 from utils.loss import joints_mse_loss, accuracy
 from utils.utils1 import *
 from utils.eval_cal import mpjpe
+
 
 num_layers = 2
 annotation_path_train = "annotation_body3d/fps25/h36m_train.npz"
 annotation_path_test = "annotation_body3d/fps25/h36m_test.npz"
 root_data_path = "/netscratch/nafis/human-pose/dataset_human36_nos7_f25"
-batchSize_train = 32
+batchSize_train = 96
 batchSize_test = 16 #256 if using 168G mem 576756 780040
 workers = 6
 wandb_flag = True
 # run_name = "res_gcn_2mgcn_fixLoss_Fps25_noS7"
 #hog loader is used chamge it when needed
-run_name = "stacked_high_batch"
+run_name = "stacked_parallel"
 model_name = 'stacked_high_batch'
 lr = 5e-3 #learning rate 0.005
 # lr = 5e-2 #learning rate 
@@ -33,7 +35,7 @@ train_flag = 1
 test_flag = 1
 best_error = math.inf
 previous_module_gcn_name = ""
-save_dir = "./results/stacked_hghbatch_14_2_2023"
+save_dir = "./results/stacked_dataparallel"
 save_out_type = "xyz"
 large_decay_epoch = 4
 lr_decay = 0.90
@@ -48,7 +50,15 @@ adj = torch.from_numpy(adj).to('cuda')
 # model = resnet18(pretrained=False, num_classes=17*2).to('cuda')
 # model = MyNet(pretrained=False, num_classes=17*2).to('cuda')
 # not using Hog loader
-model = hg2(num_classes=17).to('cuda')
+
+model = hg2(num_classes=17)
+if torch.cuda.device_count() > 1:
+  model = nn.DataParallel(model).to('cuda')
+
+# model.to(device)
+
+
+# model = hg2(num_classes=17).to('cuda')
 train_data = hum36m_dataloader(root_data_path, annotation_path_train, True, [1.1, 2.0], False, 5, flip_prob = 1)
 train_dataloader = torch.utils.data.DataLoader(train_data, batch_size=batchSize_train,
                                                 shuffle=True, num_workers=workers, pin_memory=False)
@@ -81,7 +91,7 @@ criterion_MSE = nn.MSELoss()
 if wandb_flag :
     import wandb
     wandb.login()
-    wandb.init(project="check_seperate_modules", entity="nafisur")
+    wandb.init(project="new_seperate_modules", entity="nafisur")
     wandb.run.name = run_name
     wandb.run.save()
 #load model 
@@ -115,7 +125,7 @@ for epoch in range(epoch_train):
             gt_2d = data['kp_2d'].to('cuda')
             gt_heatmap = data['heatmap'].to('cuda')
             # calculate loss
-            loss = joints_mse_loss(predicted_heatmap[-1],gt_heatmap)*10000
+            loss = joints_mse_loss(predicted_heatmap[-1],gt_heatmap)*10000 *1000
             # loss = criterion_MSE(predicted_heatmap, gt_heatmap) * 1000 # new loss factor
             # loss_initial_2d = 0
             # loss_2d = criterion_MSE(predicted_out2d, gt_2d)
@@ -134,7 +144,7 @@ for epoch in range(epoch_train):
             # print(f'mean joint error(training): {error_sum.avg *1000}')
             # import pdb;pdb.set_trace()
         # e = error_sum.avg * 1000
-        e = error_sum.avg *10000
+        e = error_sum.avg *10000 *100
         print(f'mean joint error 2d(training): {e}')
         timer = time.time() - timer
         timer = timer / len(train_data)
@@ -165,7 +175,7 @@ for epoch in range(epoch_train):
             # joint_error = mpjpe(predicted_out3d, gt_3d)
             # error_sum.update(joint_error*N, N)
             error_sum.update(joint_error, N)
-        final_error = error_sum.avg *10000 # check if needed to be multiplied by 1000.0
+        final_error = error_sum.avg *10000 *100 # check if needed to be multiplied by 1000.0
         print(f'for test mean error 2d(testing) {final_error}')
         if wandb_flag:
             wandb.log({'testing error 2d': final_error})
@@ -194,5 +204,7 @@ for epoch in range(epoch_train):
             for param_group in optimizer.param_groups:
                 param_group['lr'] *= lr_decay
                 lr *= lr_decay
+        #schedular is used
+        # scheduler.step(final_error)
     
 print(f'best mpjpe on test data is {best_error} achieved at {best_epoch} epoch')
