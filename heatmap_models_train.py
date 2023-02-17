@@ -194,7 +194,5 @@ for epoch in range(epoch_train):
             for param_group in optimizer.param_groups:
                 param_group['lr'] *= lr_decay
                 lr *= lr_decay
-        #schedular is used
-        # scheduler.step(final_error)
     
 print(f'best mpjpe on test data is {best_error} achieved at {best_epoch} epoch')
