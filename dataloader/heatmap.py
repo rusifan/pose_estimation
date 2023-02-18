@@ -33,7 +33,7 @@ from .timer import Clock
 N_KEYPOINTS = 17
 N_IMG_CHANNELS = 3
 RAW_IMG_SIZE = 1000
-MODEL_IMG_SIZE = 64
+MODEL_IMG_SIZE = 64 # for stacked hour glass 64 resnet it is 56
 DATASET_MEANS = [0.3950, 0.4323, 0.2954]
 DATASET_STDS = [0.1966, 0.1734, 0.1836]
 MODEL_NEURONS = 16

@@ -21,7 +21,7 @@ root_data_path = "/netscratch/nafis/human-pose/dataset_human36_nos7_f25"
 batchSize_train = 96
 batchSize_test = 16 #256 if using 168G mem 576756 780040
 workers = 6
-wandb_flag = True
+wandb_flag = False
 # run_name = "res_gcn_2mgcn_fixLoss_Fps25_noS7"
 #hog loader is used chamge it when needed
 run_name = "stacked_parallel"
@@ -44,9 +44,10 @@ save_model_flag = 1
 torch.manual_seed(0)
 
 
-adj = np.load('/netscratch/nafis/human-pose/real_time_pose/model/adj_4.npy')
-adj = torch.from_numpy(adj).to('cuda')
-# model = MyNet(adj=adj, block=num_layers).to('cuda')
+# adj = np.load('/netscratch/nafis/human-pose/real_time_pose/model/adj_4.npy')
+# adj = torch.from_numpy(adj).to('cuda')
+# model = MyNet(adj=adj, block=num_layers).to('cuda')'
+
 # model = resnet18(pretrained=False, num_classes=17*2).to('cuda')
 # model = MyNet(pretrained=False, num_classes=17*2).to('cuda')
 # not using Hog loader

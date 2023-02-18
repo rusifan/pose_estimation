@@ -9,10 +9,12 @@ def joints_mse_loss(output, target, target_weight=None):
     heatmaps_pred = output.view((batch_size, num_joints, -1)).split(1, 1)
     heatmaps_gt = target.view((batch_size, num_joints, -1)).split(1, 1)
 
+
     loss = 0
     for idx in range(num_joints):
         heatmap_pred = heatmaps_pred[idx]
         heatmap_gt = heatmaps_gt[idx]
+        # import pdb;pdb.set_trace()
         if target_weight is None:
             loss += 0.5 * mse_loss(heatmap_pred, heatmap_gt, reduction='mean')
         else:
